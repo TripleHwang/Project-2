@@ -1,5 +1,7 @@
 from random import randrange as rand
 import pygame, sys
+from pygame.locals import *
+import threading
 
 # The configuration
 cell_size = 18
@@ -9,23 +11,23 @@ maxfps = 30
 
 colors = [
     (0, 0, 0),
-    (255, 85, 85),
     (100, 200, 115),
     (120, 108, 245),
     (255, 140, 50),
     (50, 120, 52),
+    (255, 85, 85),
     (146, 202, 73),
     (150, 161, 218),
     (35, 35, 35)  # Helper color for background grid
 ]
 
 # Define the shapes of the single parts
-tetris_shapes = [
+tetris_shapes1 = [
     [[1, 1, 1],
-     [0, 1, 0]],
+     [0, 1, 0],],
 
     [[0, 2, 2],
-     [2, 2, 0]],
+     [2, 2, 0],],
 
     [[3, 3, 0],
      [0, 3, 3]],
@@ -39,7 +41,31 @@ tetris_shapes = [
     [[6, 6, 6, 6]],
 
     [[7, 7],
-     [7, 7]]
+     [7, 7],]
+]
+
+tetris_shapes2 = [
+    [[1, 1, 1],
+     [0, 1, 0],
+     [0, 1, 0],],
+
+    [[0, 0, 2, 2],
+     [0, 2, 2, 0],
+     [2, 2, 0, 0],],
+
+    [[3, 3, 3],
+     [0, 3, 3]],
+
+    [[4, 0, 4],
+     [4, 4, 4]],
+
+    [[0, 0, 5],
+     [5, 5, 5]],
+
+    [[6, 6, 6, 6, 6, 6, 6, 6, 6]],
+
+    [[7]]
+
 ]
 
 
@@ -89,27 +115,34 @@ class TetrisApp(object):
         self.height = cell_size * rows
         self.rlim = cell_size * cols
         self.bground_grid = [[8 if x % 2 == y % 2 else 0 for x in range(cols)] for y in range(rows)]
+        self.getchance = False
+        self.start_state = 0
+        self.tetris_shapes = tetris_shapes1
 
         self.default_font = pygame.font.Font(
-            pygame.font.get_default_font(), 12)
+            pygame.font.get_default_font(), 15)
 
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.event.set_blocked(pygame.MOUSEMOTION)  # We do not need
         # mouse movement
         # events, so we
         # block them.
-        self.next_stone = tetris_shapes[rand(len(tetris_shapes))]
+        self.next_stone = self.tetris_shapes[rand(len(self.tetris_shapes))]
         self.init_game()
 
     def new_stone(self):
         self.stone = self.next_stone[:]
-        self.next_stone = tetris_shapes[rand(len(tetris_shapes))]
+        if self.getchance == True:
+            self.next_stone = self.tetris_shapes[self.local_block_num]
+        else:
+            self.next_stone = self.tetris_shapes[rand(len(self.tetris_shapes))]
         self.stone_x = int(cols / 2 - len(self.stone[0]) / 2)
         self.stone_y = 0
 
         if check_collision(self.board,
                            self.stone,
                            (self.stone_x, self.stone_y)):
+            self.start_state = 0
             self.gameover = True
 
     def init_game(self):
@@ -162,7 +195,12 @@ class TetrisApp(object):
                             cell_size), 0)
 
     def add_cl_lines(self, n):
-        linescores = [0, 40, 100, 300, 1200]
+        if self.start_state == 2 :
+            linescores = [0, 100, 300, 1000, 3000]
+        elif self.start_state == 3 :
+            linescores = [0, 20, 50, 150, 600]
+        else :
+            linescores = [0, 40, 100, 300, 1200]
         self.lines += n
         self.score += linescores[n] * self.level
         if self.lines >= self.level * 6:
@@ -182,6 +220,12 @@ class TetrisApp(object):
                                    self.stone,
                                    (new_x, self.stone_y)):
                 self.stone_x = new_x
+            if self.start_state is 2 :
+                new_stone = self.tetris_shapes[rand(len(self.tetris_shapes))]
+                if not check_collision(self.board, new_stone, (new_x, self.stone_y)):
+                    if self.start_state == 2:
+                        self.score += 3
+                    self.stone = new_stone
 
     def quit(self):
         self.center_msg("Exiting...")
@@ -190,8 +234,12 @@ class TetrisApp(object):
 
     def drop(self, manual):
         if not self.gameover and not self.paused:
-            self.score += 1 if manual else 0
+            if self.start_state == 2 :
+                self.score += 3 if manual else 0
+            else :
+                self.score += 1 if manual else 0
             self.stone_y += 1
+
             if check_collision(self.board,
                                self.stone,
                                (self.stone_x, self.stone_y)):
@@ -231,6 +279,46 @@ class TetrisApp(object):
         self.paused = not self.paused
 
     def start_game(self):
+        self.tetris_shapes = tetris_shapes1
+        self.start_state = 1
+        if self.gameover:
+            self.init_game()
+            self.gameover = False
+
+    def hellmode(self):
+        self.tetris_shapes = tetris_shapes1
+        self.start_state = 2
+        pygame.mixer.music.load('amerika.mp3')
+        pygame.mixer.music.play(-1, 0.0)
+        if self.gameover:
+            self.init_game()
+            self.gameover = False
+
+    def glorymode(self):
+        self.tetris_shapes = tetris_shapes1
+        pygame.mixer.music.load('Hallelujah.mp3')
+        pygame.mixer.music.play(-1, 0.0)
+        self.start_state = 3
+        if self.gameover:
+            self.init_game()
+            self.gameover = False
+
+    def chance(self):
+        if self.start_state == 3 and self.getchancenum > 0:
+            self.getchancenum -= 1
+            self.local_block_num = rand(len(self.tetris_shapes))
+            self.getchance = True
+            self.timer = threading.Timer(10, self.canclechance).start()
+
+    def canclechance(self):
+        self.getchance = False
+
+
+    def strangemode(self):
+        pygame.mixer.music.load('amerika.mp3')
+        pygame.mixer.music.play(-1, 0.0)
+        self.start_state = 4
+        self.tetris_shapes = tetris_shapes2
         if self.gameover:
             self.init_game()
             self.gameover = False
@@ -244,38 +332,47 @@ class TetrisApp(object):
             'UP': self.rotate_stone,
             'p': self.toggle_pause,
             'SPACE': self.start_game,
-            'RETURN': self.insta_drop
+            'RETURN': self.insta_drop,
+            'h' : self.hellmode,
+            'g' : self.glorymode,
+            'c' : self.chance,
+            's' : self.strangemode
         }
-
+        self.start_state = 0
         self.gameover = False
         self.paused = False
-
+        self.getchance = False
+        self.getchancenum = 3
         dont_burn_my_cpu = pygame.time.Clock()
         while 1:
             self.screen.fill((0, 0, 0))
-            if self.gameover:
-                self.center_msg("""Game Over!\nYour score: %d
-Press space to continue""" % self.score)
+            if self.start_state == 0:
+                self.center_msg("""mode select\nNormal Mode(Space)\nGlory Mode(G)\nHell Mode(H)\nVery Strange Mode(S)""")
+            elif self.gameover:
+                self.center_msg("""Game Over!\nYour score: %d \nPress space to continue""" % self.score)
             else:
                 if self.paused:
                     self.center_msg("Paused")
                 else:
                     pygame.draw.line(self.screen,
-                                     (255, 255, 255),
+                                    (255, 255, 255),
                                      (self.rlim + 1, 0),
                                      (self.rlim + 1, self.height - 1))
                     self.disp_msg("Next:", (
-                        self.rlim + cell_size,
+                         self.rlim + cell_size,
                         2))
-                    self.disp_msg("Score: %d\n\nLevel: %d\
-\nLines: %d" % (self.score, self.level, self.lines),
-                                  (self.rlim + cell_size, cell_size * 5))
+                    if self.start_state == 2 or self.start_state == 1:
+                        self.disp_msg("Score: %d\n\nLevel: %d\ \nLines: %d" % (self.score, self.level, self.lines),
+                                    (self.rlim + cell_size, cell_size * 5))
+                    elif self.start_state == 3 :
+                        self.disp_msg("Score: %d\n\nLevel: %d\ \nLines: %d\nChances: %d" % (self.score, self.level, self.lines, self.getchancenum),
+                                      (self.rlim + cell_size, cell_size * 5))
                     self.draw_matrix(self.bground_grid, (0, 0))
                     self.draw_matrix(self.board, (0, 0))
                     self.draw_matrix(self.stone,
-                                     (self.stone_x, self.stone_y))
+                                    (self.stone_x, self.stone_y))
                     self.draw_matrix(self.next_stone,
-                                     (cols + 1, 2))
+                                        (cols + 1, 2))
             pygame.display.update()
 
             for event in pygame.event.get():
@@ -285,11 +382,11 @@ Press space to continue""" % self.score)
                     self.quit()
                 elif event.type == pygame.KEYDOWN:
                     for key in key_actions:
-                        if event.key == eval("pygame.K_"
-                                                     + key):
+                        if event.key == eval("pygame.K_" + key):
                             key_actions[key]()
 
             dont_burn_my_cpu.tick(maxfps)
+
 
 
 if __name__ == '__main__':
