@@ -9,7 +9,7 @@
 기존의 테트리스에 간단한 모디피케이션들을 추가한 테트리스입니다. 각 모드별로 핵심 메카닉과 서브 기능들을 추가했습니다.
 
 
-## 2. Development Functions
+## 3. Development Functions
 
 1. 7 Block Random Generating (Essential)
 2. Drop (Essential)
@@ -28,7 +28,7 @@
 15. Cool BGM
 
 
-## 2. Used & Using tools
+## 4. Used & Using tools
 
 # Using
 1. pygame
@@ -36,7 +36,7 @@
 3. threading
 
 
-## 3. How to Use This App
+## 5. How to Use This App
 
 1. Download or Clone this Git. Go Game Directory
 2. Start OSS_Tetris.py
