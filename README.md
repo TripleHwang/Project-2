@@ -4,6 +4,11 @@
 ## 1. Initial View
 ![initialview](/Images/initview.PNG)
 
+
+## 2. Introduce
+기존의 테트리스에 간단한 모디피케이션들을 추가한 테트리스입니다. 각 모드별로 핵심 메카닉과 서브 기능들을 추가했습니다.
+
+
 ## 2. Development Functions
 
 1. 7 Block Random Generating (Essential)
